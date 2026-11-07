@@ -1,0 +1,1 @@
+document.addEventListener("DOMContentLoaded",async()=>{if(!window.db)return;const {data}=await db.from("site_settings").select("*").eq("id",1).maybeSingle();if(!data)return;const set=(id,v)=>{if(v)document.getElementById(id).textContent=v;};set("contact-email",data.contact_email);set("contact-phone",data.contact_phone);set("contact-address",data.contact_address);});

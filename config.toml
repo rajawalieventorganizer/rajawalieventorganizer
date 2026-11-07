@@ -1,0 +1,8 @@
+[functions.register-event]
+verify_jwt = false
+
+[functions.check-status]
+verify_jwt = false
+
+[functions.delete-event]
+verify_jwt = true
