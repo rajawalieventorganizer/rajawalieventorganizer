@@ -1,6 +1,6 @@
 # RAJAWALI EVENT ORGANIZER
 
-Paket website statis untuk GitHub Pages dengan backend Supabase.
+Paket website Rajawali Event Organizer untuk GitHub Pages. File HTML, CSS, dan JavaScript pada paket ini berada langsung di root repository.
 
 ## Isi paket
 - `index.html` — beranda dan daftar event.
@@ -22,7 +22,7 @@ Paket website statis untuk GitHub Pages dengan backend Supabase.
    values ('UUID-USER-ADMIN');
    ```
 5. Ambil Project URL dan anon/public key di Project Settings > API.
-6. Isi kedua nilai tersebut di `assets/js/supabase-config.js`. Jangan pernah menaruh `service_role` key di file HTML/JavaScript publik.
+6. Isi kedua nilai tersebut di `supabase-config.js`. Jangan pernah menaruh `service_role` key di file HTML/JavaScript publik.
 
 ## B. Deploy Edge Functions
 Pasang Supabase CLI dan login. Dari folder proyek, tautkan project:
@@ -37,7 +37,7 @@ Pastikan secret bawaan fungsi tersedia: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, dan
 `register-event` dan `check-status` menerima pengunjung tanpa login dan memvalidasi input di server. `delete-event` mewajibkan sesi admin.
 
 ## C. Upload ke GitHub Pages
-Upload seluruh isi folder ini ke root repository (bukan folder ZIP-nya). Aktifkan Settings > Pages > Deploy from a branch > `main` > `/ (root)`.
+Upload seluruh isi paket ini langsung ke root repository (bukan folder ZIP-nya). Aktifkan Settings > Pages > Deploy from a branch > `main` > `/ (root)`.
 Gunakan HTTPS. Supabase Auth URL Configuration perlu diisi dengan URL GitHub Pages, misalnya:
 - Site URL: `https://USERNAME.github.io`
 - Redirect URLs: `https://USERNAME.github.io/REPOSITORY/**`

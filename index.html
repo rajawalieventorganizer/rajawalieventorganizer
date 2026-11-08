@@ -5,9 +5,9 @@
   <meta name="theme-color" content="#0b1e46">
   <meta name="description" content="Rajawali Event Organizer — platform pendaftaran dan informasi event olahraga dan musik.">
   <title>Rajawali Event Organizer</title>
-  <link rel="icon" href="logo-rajawali.jpg"><link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" href="logo-rajawali.jpg"><link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script defer src="assets/js/supabase-config.js"></script><script defer src="assets/js/common.js"></script><script defer src="assets/js/home.js"></script>
+  <script defer src="supabase-config.js"></script><script defer src="common.js"></script><script defer src="home.js"></script>
 </head>
 <body>
 <header class="site-header"><div class="container header-inner">
@@ -16,14 +16,18 @@
   <nav class="main-nav"><a class="active" href="index.html">Beranda</a><a href="#agenda">Agenda Event</a><a href="kontak.html">Kontak</a><a class="nav-status" href="cek-status.html">Cek Status</a><a class="nav-admin" href="admin.html">Panel Admin</a></nav>
 </div></header>
 <main>
-<section class="hero"><div class="container hero-grid"><div class="hero-copy">
-  <span class="eyebrow">SPORT • MUSIC • COMMUNITY</span><h1>Satukan Semangat,<br><em>Rayakan Prestasi.</em></h1>
-  <p>Temukan event olahraga dan musik, lakukan pendaftaran, dan pantau status keikutsertaan dalam satu platform.</p>
-  <div class="hero-actions"><a class="btn btn-gold" href="#agenda">Jelajahi Event <span>↗</span></a><a class="btn btn-outline-light" href="cek-status.html">Cek Status Pendaftaran</a></div>
-  <div class="hero-note"><span class="pulse"></span> Portal resmi pendaftaran Rajawali Event Organizer</div>
-</div><div class="hero-mark"><img src="logo-rajawali.jpg" alt="Rajawali Event Organizer"></div></div></section>
+<section class="hero hero-premium"><div class="container hero-grid"><div class="hero-copy">
+<span class="eyebrow">RAJAWALI EVENT ORGANIZER · SPORT & MUSIC</span>
+<h1>Tempat Semangat<br><em>Menjadi Prestasi.</em></h1>
+<p>Platform informasi dan pendaftaran kegiatan olahraga, kompetisi, serta pertunjukan musik. Temukan agenda, daftarkan tim, dan pantau keikutsertaan Anda dengan mudah.</p>
+<div class="hero-actions"><a class="btn btn-gold" href="#agenda">Jelajahi Event <span>↗</span></a><a class="btn btn-outline-light" href="cek-status.html">Cek Status Pendaftaran</a></div>
+<div class="hero-trust"><span><i>✓</i> Informasi event terpusat</span><span><i>✓</i> Pendaftaran online</span><span><i>✓</i> Kartu peserta digital</span></div>
+</div><div class="hero-visual"><div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
+<div class="hero-logo-card"><img src="logo-rajawali.jpg" alt="Logo Rajawali Event Organizer"><span>SPORT · MUSIC · COMMUNITY</span></div>
+<div class="hero-float hero-float-top"><b>01</b><span>SPORT EVENT</span></div><div class="hero-float hero-float-bottom"><b>02</b><span>MUSIC EVENT</span></div>
+</div></div><div class="hero-bottom-line"></div></section>
 <section class="section" id="agenda"><div class="container">
-  <div class="section-heading"><div><span class="eyebrow">KALENDER KEGIATAN</span><h2>Event Pilihan</h2><p>Informasi event yang sedang dibuka dan akan datang.</p></div><div class="search-wrap"><input id="event-search" type="search" placeholder="Cari nama atau lokasi event..." aria-label="Cari event"></div></div>
+  <div class="section-heading"><div><span class="eyebrow">KALENDER KEGIATAN</span><h2>Agenda Event</h2><p>Jelajahi kegiatan terbaru dan temukan event yang sesuai dengan minat Anda.</p></div><div class="search-wrap"><input id="event-search" type="search" placeholder="Cari nama atau lokasi event..." aria-label="Cari event"></div></div>
   <div id="event-list" class="event-grid"><div class="empty-state">Memuat daftar event...</div></div>
   <p id="home-message" class="muted center"></p>
 </div></section>
