@@ -18,6 +18,25 @@ document.addEventListener("DOMContentLoaded", () => {
     if(error||!admin){await db.auth.signOut();msg.textContent="Akun ini belum terdaftar sebagai admin Rajawali.";show(login,true);return;}
     show(login,false);show(dashboard,true);show($("#logout-btn"),true);await loadEvents();await loadSettings();
   }
+  function todayJakarta(){
+    const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+    return `${parts.find(x=>x.type==="year")?.value}-${parts.find(x=>x.type==="month")?.value}-${parts.find(x=>x.type==="day")?.value}`;
+  }
+  function eventHasPassed(item){
+    const finalDate=item?.end_date||item?.start_date;
+    return !!finalDate && finalDate < todayJakarta();
+  }
+  async function getFunctionErrorMessage(error){
+    let message=error?.message||"Fungsi penghapusan gagal.";
+    try{
+      const response=error?.context?.clone ? error.context.clone() : error?.context;
+      if(response?.json){
+        const body=await response.json();
+        message=body?.error||body?.message||message;
+      }
+    }catch(_){ }
+    return message;
+  }
   async function loadEvents(){
     eventList.innerHTML='<div class="empty-state">Memuat event...</div>';
     const [{data,error},{count:regCount}]=await Promise.all([
@@ -28,17 +47,28 @@ document.addEventListener("DOMContentLoaded", () => {
     currentEvents=data||[];
     $("#stat-total").textContent=currentEvents.length;$("#stat-live").textContent=currentEvents.filter(x=>x.status==="published").length;$("#stat-draft").textContent=currentEvents.filter(x=>x.status==="draft").length;$("#stat-reg").textContent=regCount||0;
     if(!currentEvents.length){eventList.innerHTML='<div class="empty-state">Belum ada event. Tekan “Buat Event” untuk memulai.</div>';return;}
-    eventList.innerHTML=currentEvents.map(e=>`<article class="admin-event-item"><div><h3>${esc(e.title)}</h3><p>${date(e.start_date)} · ${esc(e.venue||"Lokasi belum ditentukan")} · ${statusTag(e.status)}</p></div><div class="admin-actions"><button data-edit="${e.id}">Edit</button><a href="event.html?slug=${encodeURIComponent(e.slug)}" target="_blank">Lihat</a><button data-publish="${e.id}">${e.status==="published"?"Jadikan Draft":"Publikasikan"}</button><button class="danger" data-delete="${e.id}">Hapus</button></div></article>`).join("");
+    eventList.innerHTML=currentEvents.map(e=>`<article class="admin-event-item"><div><h3>${esc(e.title)}</h3><p>${date(e.start_date)} · ${esc(e.venue||"Lokasi belum ditentukan")} · ${statusTag(e.status)}</p></div><div class="admin-actions"><button data-edit="${e.id}">Edit</button><a href="event.html?slug=${encodeURIComponent(e.slug)}" target="_blank">Lihat</a><button data-publish="${e.id}">${e.status==="published"?"Jadikan Draft":"Publikasikan"}</button>${eventHasPassed(e)?`<button class="danger" data-delete="${e.id}">Hapus</button>`:`<small>Hapus tersedia setelah event lewat</small>`}</div></article>`).join("");
   }
   eventList.addEventListener("click",async e=>{
     const edit=e.target.dataset.edit,pub=e.target.dataset.publish,del=e.target.dataset.delete;
     if(edit){const item=currentEvents.find(x=>x.id===edit);if(item)await editEvent(item);}
     if(pub){const item=currentEvents.find(x=>x.id===pub);if(!item)return;const next=item.status==="published"?"draft":"published";const {error}=await db.from("events").update({status:next}).eq("id",pub);if(error)alert(error.message);await loadEvents();}
-    if(del){const item=currentEvents.find(x=>x.id===del);if(!item)return;const yes=confirm(`Hapus event “${item.title}”? Semua pendaftaran, peserta, pembayaran, menu, kolom formulir, serta file event yang tercatat akan ikut dihapus dari Supabase. Tindakan ini tidak dapat dibatalkan.`);if(!yes)return;
+    if(del){
+      const item=currentEvents.find(x=>x.id===del);if(!item)return;
+      if(!eventHasPassed(item)){alert("Event hanya dapat dihapus setelah tanggal event lewat.");return;}
+      const yes=confirm(`Hapus event “${item.title}”? Seluruh pendaftaran, peserta, formulir, menu, dan file event yang tercatat akan ikut dihapus. Tindakan ini tidak dapat dibatalkan.`);if(!yes)return;
       const btn=e.target;btn.disabled=true;btn.textContent="Menghapus...";
-      const {data,error}=await db.functions.invoke("delete-event",{body:{event_id:del}});
-      if(error||data?.error){alert(`Penghapusan gagal: ${error?.message||data.error}. Data tidak dianggap terhapus.`);btn.disabled=false;btn.textContent="Hapus";return;}
-      alert("Event dan data terkait berhasil dihapus dari Supabase.");await loadEvents();
+      try{
+        const {data,error}=await db.functions.invoke("delete-event",{body:{event_id:del}});
+        if(error)throw new Error(await getFunctionErrorMessage(error));
+        if(data?.error)throw new Error(data.error);
+        if(!data?.success)throw new Error("Server belum mengonfirmasi penghapusan.");
+        alert("Event dan seluruh data terkait berhasil dihapus.");
+        await loadEvents();
+      }catch(err){
+        alert(`Penghapusan gagal: ${err?.message||"Terjadi kesalahan."}\n\nData event tidak dianggap terhapus.`);
+        btn.disabled=false;btn.textContent="Hapus";
+      }
     }
   });
   function addField(f={}){const id=crypto.randomUUID();fieldRows.push({id,...f});renderFields();}

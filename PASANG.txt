@@ -1,0 +1,19 @@
+PERBAIKAN HAPUS EVENT RAJAWALI
+
+File di dalam paket ini harus ditempatkan sesuai jalur berikut pada repository GitHub:
+1. admin.js
+   Ganti file admin.js yang ada di ROOT repository.
+2. supabase/functions/delete-event/index.ts
+   Ganti file fungsi delete-event di folder tersebut (untuk salinan proyek/backup).
+
+PENTING: Fungsi yang aktif di Supabase tetap harus diperbarui melalui Supabase Dashboard:
+Edge Functions > delete-event > Code. Ganti isi index.ts dengan file di paket ini, lalu Deploy.
+
+Perubahan:
+- Tombol Hapus hanya muncul untuk event yang tanggal akhirnya sudah lewat (Asia/Jakarta).
+- Server tetap memvalidasi tanggal sebelum penghapusan.
+- Fungsi menggunakan sesi Admin dan kebijakan RLS, bukan SUPABASE_SERVICE_ROLE_KEY.
+- Pesan error asli ditampilkan pada Panel Admin agar tidak lagi hanya muncul “non-2xx”.
+- Record terkait terhapus melalui foreign key ON DELETE CASCADE; file Storage yang terdaftar di event_assets dihapus terlebih dahulu.
+
+Tidak ada event yang otomatis dihapus.

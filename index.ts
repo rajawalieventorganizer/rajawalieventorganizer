@@ -1,44 +1,157 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
-const alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-function randomCode(n:number){const bytes=crypto.getRandomValues(new Uint8Array(n));return [...bytes].map(b=>alphabet[b%alphabet.length]).join("");}
-Deno.serve(async req=>{
- if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
- const out=(v:any,s=200)=>new Response(JSON.stringify(v),{status:s,headers:{...cors,"Content-Type":"application/json"}});
- try{
-  const url=Deno.env.get("SUPABASE_URL")!,key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const db=createClient(url,key);
-  const body=await req.json();const {event_id,registration_type,team_name,whatsapp,participants,custom_data}=body;
-  if(!event_id||!whatsapp||!Array.isArray(participants)||participants.length<1||participants.length>50)return out({error:"Data pendaftaran belum lengkap atau jumlah anggota tidak valid."},400);
-  if(!["individual","team"].includes(registration_type))return out({error:"Jenis pendaftaran tidak valid."},400);
-  if(registration_type==="individual"&&participants.length!==1)return out({error:"Pendaftaran individu hanya untuk satu orang."},400);
-  if(registration_type==="team"&&!String(team_name||"").trim())return out({error:"Nama tim wajib diisi."},400);
-  for(const p of participants)if(!String(p.name||"").trim()||String(p.name).length>100)return out({error:"Nama peserta wajib diisi (maksimal 100 karakter)."},400);
-  const {data:event,error:eventError}=await db.from("events").select("*").eq("id",event_id).eq("status","published").single();
-  if(eventError||!event)return out({error:"Event tidak ditemukan atau pendaftaran belum dibuka."},404);
-  const today=new Date().toISOString().slice(0,10);
-  if(event.registration_deadline&&event.registration_deadline<today)return out({error:"Pendaftaran telah ditutup."},400);
-  if(event.registration_type!=="both"&&event.registration_type!==registration_type)return out({error:"Jenis pendaftaran tidak tersedia untuk event ini."},400);
-  const unitFee=event.fee_mode==="free"?0:Number(event.fee_amount||0);
-  const fee=unitFee*(event.fee_basis==="participant"?participants.length:1);
-  let suffix="000",token="",created=null;
-  for(let attempt=0;attempt<8;attempt++){
-    suffix=fee>0?String(100+crypto.getRandomValues(new Uint32Array(1))[0]%900):"000";
-    token=`SMO-${randomCode(4)}-${suffix}`;
-    const amount=fee>0?fee+Number(suffix):0;
-    const {data,error}=await db.from("registrations").insert({
-      event_id,token,registrant_name:String(participants[0].name).trim(),whatsapp:String(whatsapp).trim(),
-      registration_type,team_name:String(team_name||"").trim(),custom_data:custom_data||{},
-      payment_amount:amount,payment_suffix:suffix,payment_status:fee>0?"pending":"not_required",
-      registration_status:event.approval_required?"pending":"approved"
-    }).select("id,token,payment_amount").single();
-    if(!error){created=data;break;}
-    if(error.code!=="23505")throw error;
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function todayJakarta() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  return `${parts.find((p) => p.type === "year")?.value}-${parts.find((p) => p.type === "month")?.value}-${parts.find((p) => p.type === "day")?.value}`;
+}
+
+function publishableKey() {
+  // Prefer the current Supabase publishable-key dictionary.
+  const raw = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
+  if (raw) {
+    try {
+      const keys = JSON.parse(raw);
+      if (keys?.default) return keys.default as string;
+    } catch {
+      throw new Error("SUPABASE_PUBLISHABLE_KEYS tidak dapat dibaca.");
+    }
   }
-  if(!created)throw new Error("Tidak berhasil membuat token unik. Silakan kirim ulang.");
-  const rows=participants.map((p,i)=>({registration_id:created.id,event_id,participant_no:`${created.token}-${String(i+1).padStart(2,"0")}`,full_name:String(p.name).trim(),participant_role:String(p.role||"Peserta"),team_name:String(team_name||"").trim()}));
-  const {error:peopleError}=await db.from("participants").insert(rows);
-  if(peopleError){await db.from("registrations").delete().eq("id",created.id);throw peopleError;}
-  return out({success:true,token:created.token,payment_amount:created.payment_amount,payment_status:fee>0?"pending":"not_required",participants:rows.length});
- }catch(e){return out({error:e.message||"Pendaftaran gagal diproses."},500);}
+  return Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+}
+
+Deno.serve(async (req) => {
+  const respond = (body: Record<string, unknown>, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    if (req.method !== "POST") {
+      return respond({ error: "Metode tidak diizinkan." }, 405);
+    }
+
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = publishableKey();
+    const authorization = req.headers.get("Authorization");
+
+    if (!url || !key) {
+      return respond({ error: "Konfigurasi Supabase URL atau publishable key tidak tersedia pada Edge Function." }, 500);
+    }
+    if (!authorization) {
+      return respond({ error: "Sesi login Admin tidak ditemukan. Silakan login kembali." }, 401);
+    }
+
+    // Gunakan sesi Admin sendiri. RLS Supabase menjadi lapisan otorisasi
+    // untuk tabel events, event_assets, dan bucket event-assets.
+    // Tidak memerlukan service_role key di dalam fungsi ini.
+    const db = createClient(url, key, {
+      global: { headers: { Authorization: authorization } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const { data: userData, error: authError } = await db.auth.getUser();
+    const user = userData?.user;
+    if (authError || !user) {
+      return respond({ error: "Sesi login tidak valid. Silakan login kembali." }, 401);
+    }
+
+    const { data: isAdmin, error: adminError } = await db.rpc("is_organizer_admin");
+    if (adminError) {
+      return respond({ error: `Pemeriksaan hak Admin gagal: ${adminError.message}` }, 500);
+    }
+    if (!isAdmin) {
+      return respond({ error: "Akun ini tidak terdaftar sebagai Admin Rajawali." }, 403);
+    }
+
+    let body: { event_id?: unknown };
+    try {
+      body = await req.json();
+    } catch {
+      return respond({ error: "Isi permintaan tidak valid." }, 400);
+    }
+    const eventId = body?.event_id;
+    if (typeof eventId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(eventId)) {
+      return respond({ error: "ID event tidak valid." }, 400);
+    }
+
+    const { data: event, error: eventError } = await db
+      .from("events")
+      .select("id,title,start_date,end_date")
+      .eq("id", eventId)
+      .maybeSingle();
+
+    if (eventError) {
+      return respond({ error: `Gagal membaca event: ${eventError.message}` }, 500);
+    }
+    if (!event) {
+      return respond({ error: "Event tidak ditemukan pada tabel events. Tidak ada data yang dihapus." }, 404);
+    }
+
+    const finalDate = event.end_date || event.start_date;
+    if (!finalDate || finalDate >= todayJakarta()) {
+      return respond({ error: "Event belum lewat. Penghapusan ditolak." }, 403);
+    }
+
+    const { data: assets, error: assetsError } = await db
+      .from("event_assets")
+      .select("bucket_name,object_path")
+      .eq("event_id", eventId);
+
+    if (assetsError) {
+      return respond({ error: `Gagal membaca daftar file event: ${assetsError.message}` }, 500);
+    }
+
+    const grouped = new Map<string, string[]>();
+    for (const asset of assets || []) {
+      if (!grouped.has(asset.bucket_name)) grouped.set(asset.bucket_name, []);
+      grouped.get(asset.bucket_name)!.push(asset.object_path);
+    }
+
+    // Hapus file yang tercatat sebelum menghapus record event.
+    for (const [bucket, paths] of grouped) {
+      const { error } = await db.storage.from(bucket).remove(paths);
+      if (error) {
+        return respond({ error: `Gagal menghapus file dari Storage (${bucket}): ${error.message}. Data event belum dihapus.` }, 500);
+      }
+    }
+
+    const { data: deleted, error: deleteError } = await db
+      .from("events")
+      .delete()
+      .eq("id", eventId)
+      .select("id");
+
+    if (deleteError) {
+      return respond({ error: `Gagal menghapus event: ${deleteError.message}` }, 500);
+    }
+    if (!deleted || deleted.length === 0) {
+      return respond({ error: "Tidak ada baris event yang terhapus. Periksa izin RLS Admin." }, 403);
+    }
+
+    return respond({
+      success: true,
+      event_id: eventId,
+      message: `Event “${event.title}” dan data terkait berhasil dihapus.`,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Terjadi kesalahan pada server.";
+    console.error("delete-event error:", message);
+    return respond({ error: message }, 500);
+  }
 });
