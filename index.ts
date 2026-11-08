@@ -6,16 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-function todayJakarta() {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Jakarta",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  return `${parts.find((p) => p.type === "year")?.value}-${parts.find((p) => p.type === "month")?.value}-${parts.find((p) => p.type === "day")?.value}`;
-}
-
 function publishableKey() {
   // Prefer the current Supabase publishable-key dictionary.
   const raw = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
@@ -92,7 +82,7 @@ Deno.serve(async (req) => {
 
     const { data: event, error: eventError } = await db
       .from("events")
-      .select("id,title,start_date,end_date")
+      .select("id,title")
       .eq("id", eventId)
       .maybeSingle();
 
@@ -103,10 +93,6 @@ Deno.serve(async (req) => {
       return respond({ error: "Event tidak ditemukan pada tabel events. Tidak ada data yang dihapus." }, 404);
     }
 
-    const finalDate = event.end_date || event.start_date;
-    if (!finalDate || finalDate >= todayJakarta()) {
-      return respond({ error: "Event belum lewat. Penghapusan ditolak." }, 403);
-    }
 
     const { data: assets, error: assetsError } = await db
       .from("event_assets")

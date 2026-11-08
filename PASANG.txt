@@ -1,19 +1,22 @@
-PERBAIKAN HAPUS EVENT RAJAWALI
+PERBAIKAN FINAL — HAPUS EVENT KAPAN SAJA
 
-File di dalam paket ini harus ditempatkan sesuai jalur berikut pada repository GitHub:
-1. admin.js
-   Ganti file admin.js yang ada di ROOT repository.
-2. supabase/functions/delete-event/index.ts
-   Ganti file fungsi delete-event di folder tersebut (untuk salinan proyek/backup).
+Kebijakan baru:
+- Admin dapat menghapus event kapan saja, baik Draft, Published, sedang berlangsung, maupun sudah selesai.
+- Tidak ada penghapusan otomatis.
+- Penghapusan hanya dapat dilakukan oleh akun yang lolos pemeriksaan is_organizer_admin().
+- Penghapusan bersifat permanen: data anak yang memiliki foreign key ON DELETE CASCADE ikut terhapus.
+- File Storage yang tercatat pada event_assets dihapus terlebih dahulu. Jika penghapusan file gagal, event database tidak diteruskan untuk dihapus.
 
-PENTING: Fungsi yang aktif di Supabase tetap harus diperbarui melalui Supabase Dashboard:
-Edge Functions > delete-event > Code. Ganti isi index.ts dengan file di paket ini, lalu Deploy.
+PASANG FILE
+1. GitHub repository root: ganti admin.js dengan file admin.js dari paket ini.
+2. Supabase Dashboard > Edge Functions > delete-event > Code: ganti seluruh isi index.ts dengan file supabase/functions/delete-event/index.ts dari paket ini.
+3. Tekan Deploy updates pada Supabase.
+4. Buka ulang Panel Admin (refresh), login kembali jika diminta, lalu tombol Hapus akan tersedia untuk semua event.
 
-Perubahan:
-- Tombol Hapus hanya muncul untuk event yang tanggal akhirnya sudah lewat (Asia/Jakarta).
-- Server tetap memvalidasi tanggal sebelum penghapusan.
-- Fungsi menggunakan sesi Admin dan kebijakan RLS, bukan SUPABASE_SERVICE_ROLE_KEY.
-- Pesan error asli ditampilkan pada Panel Admin agar tidak lagi hanya muncul “non-2xx”.
-- Record terkait terhapus melalui foreign key ON DELETE CASCADE; file Storage yang terdaftar di event_assets dihapus terlebih dahulu.
+CATATAN KEAMANAN
+- Fungsi memeriksa sesi login dan hak Admin di server.
+- Jangan menaruh service_role key di HTML, JavaScript browser, atau GitHub.
+- Sebelum menghapus event penting, ekspor/backup data bila mungkin.
+- Pastikan semua unggahan event tercatat di event_assets agar file Storage dapat ikut dibersihkan.
 
-Tidak ada event yang otomatis dihapus.
+Jika muncul kegagalan, admin.js sekarang akan menampilkan pesan error asli dari Edge Function, bukan hanya pesan non-2xx.
