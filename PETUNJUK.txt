@@ -1,4 +1,19 @@
-PERBAIKAN PENGATURAN RAJAWALI
+PEMBARUAN FORMULIR RAJAWALI — GAYA GOOGLE FORMS
 
-Timpa isi file admin-settings-extra.js di GitHub dengan file dari paket ini, lalu Commit changes.
-File lain tidak perlu diubah. Setelah GitHub Pages diperbarui, buka Panel Admin > Identitas Website.
+Timpa DUA file berikut pada folder utama (root) repositori GitHub:
+1. admin.js  -> ganti seluruh isi file lama dengan admin.js dari paket ini.
+2. event.js  -> ganti seluruh isi file lama dengan event.js dari paket ini.
+
+Tidak perlu menjalankan SQL. Tabel event_fields yang sudah ada sudah menyimpan jenis pertanyaan, opsi jawaban (JSONB), urutan, dan status wajib diisi.
+Jangan menghapus file lain atau mengubah supabase-config.js.
+
+Fitur baru:
+- Pertanyaan jawaban singkat, paragraf, angka, tanggal, waktu, email, dan telepon.
+- Pilihan ganda (satu jawaban), kotak centang (lebih dari satu jawaban), dan dropdown.
+- Tambah/hapus opsi jawaban satu per satu.
+- Isian tidak hilang ketika menambah/menghapus opsi atau pertanyaan.
+- Duplikat pertanyaan, pindah urutan, dan hapus pertanyaan.
+- Tanda pertanyaan wajib diisi.
+- Tampilan form publik mengikuti jenis pertanyaan dan menyimpan jawaban ke custom_data pendaftaran.
+
+Setelah kedua file di-commit, buka situs dan lakukan hard refresh / bersihkan cache browser jika tampilan lama masih terlihat.
