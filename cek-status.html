@@ -14,13 +14,18 @@
   <!-- SUPABASE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- QR CODE: ALAMAT YANG SUDAH DIPERBAIKI -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/lib/browser.min.js"></script>
+  <!-- QR CODE: CDNJS, DENGAN CADANGAN jsDelivr -->
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+    onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js'">
+  </script>
 
-  <!-- PDF -->
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+  <!-- PUSTAKA PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"
+    onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js'">
+  </script>
 
-  <!-- KONFIGURASI WEBSITE -->
+  <!-- KONFIGURASI DAN PROGRAM WEBSITE -->
   <script defer src="supabase-config.js"></script>
   <script defer src="common.js"></script>
   <script defer src="status.js"></script>
@@ -34,6 +39,7 @@
 
       <a class="brand" href="index.html">
         <img src="logo-rajawali.jpg" alt="Logo Rajawali">
+
         <span>
           <b>RAJAWALI</b>
           <small>EVENT ORGANIZER</small>
