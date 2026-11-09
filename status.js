@@ -167,10 +167,50 @@ document.addEventListener("DOMContentLoaded", () => {
     return rows * rowH;
   }
 
-  async function buildCards(data) {
-    if (!window.jspdf?.jsPDF || !window.QRCode) {
-      throw new Error("Pustaka PDF atau QR Code belum termuat. Muat ulang halaman.");
+  async function ensureCardLibraries() {
+    async function ensure(test, urls, label) {
+      if (test()) return;
+      let lastError = null;
+      for (const src of urls) {
+        try {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = src;
+            script.async = true;
+            script.onload = () => test()
+              ? resolve()
+              : reject(new Error(label + " termuat tetapi objek pustakanya tidak tersedia."));
+            script.onerror = () => reject(new Error("Gagal memuat " + label + " dari " + src));
+            document.head.appendChild(script);
+          });
+          if (test()) return;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      throw new Error(label + " belum dapat dimuat. Periksa koneksi internet lalu muat ulang halaman. " + (lastError?.message || ""));
     }
+
+    await ensure(
+      () => Boolean(window.jspdf?.jsPDF),
+      [
+        "https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"
+      ],
+      "Pustaka PDF (jsPDF)"
+    );
+    await ensure(
+      () => Boolean(window.QRCode?.toDataURL),
+      [
+        "https://unpkg.com/qrcode@1.5.4/build/qrcode.min.js",
+        "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"
+      ],
+      "Pustaka QR Code"
+    );
+  }
+
+  async function buildCards(data) {
+    await ensureCardLibraries();
     const { jsPDF } = window.jspdf;
     const people = data.participants || [];
     if (!people.length) throw new Error("Belum ada data peserta untuk dibuatkan kartu.");
