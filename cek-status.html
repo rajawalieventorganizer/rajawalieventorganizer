@@ -11,16 +11,16 @@
   <link rel="icon" href="logo-rajawali.jpg">
   <link rel="stylesheet" href="style.css">
 
-  <!-- Supabase -->
+  <!-- SUPABASE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- QR Code dari GitHub Rajawali sendiri -->
-  <script src="vendor/qrcode.min.js"></script>
+  <!-- QR CODE: ALAMAT YANG SUDAH DIPERBAIKI -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/lib/browser.min.js"></script>
 
-  <!-- Pustaka PDF -->
+  <!-- PDF -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 
-  <!-- Konfigurasi dan program website -->
+  <!-- KONFIGURASI WEBSITE -->
   <script defer src="supabase-config.js"></script>
   <script defer src="common.js"></script>
   <script defer src="status.js"></script>
@@ -28,6 +28,7 @@
 
 <body>
 
+  <!-- HEADER -->
   <header class="site-header">
     <div class="container header-inner">
 
@@ -39,9 +40,12 @@
         </span>
       </a>
 
-      <button class="menu-toggle"
+      <button
+        class="menu-toggle"
         aria-label="Buka menu"
-        aria-expanded="false">☰</button>
+        aria-expanded="false">
+        ☰
+      </button>
 
       <nav class="main-nav">
         <a href="index.html">Beranda</a>
@@ -54,16 +58,21 @@
     </div>
   </header>
 
+  <!-- KONTEN UTAMA -->
   <main>
 
     <section class="page-hero">
       <div class="container">
+
         <span class="eyebrow">PESERTA EVENT</span>
+
         <h1>Cek Status Pendaftaran</h1>
+
         <p>
           Masukkan token yang diterima setelah pendaftaran.
           Contoh: SMO-A7K9-447.
         </p>
+
       </div>
     </section>
 
@@ -72,13 +81,17 @@
 
         <div class="status-card">
 
-          <img src="logo-rajawali.jpg" alt="Logo Rajawali">
+          <img
+            src="logo-rajawali.jpg"
+            alt="Logo Rajawali">
 
           <h2>Periksa Pendaftaran</h2>
 
           <form id="status-form">
 
-            <label for="token">Token Pendaftaran</label>
+            <label for="token">
+              Token Pendaftaran
+            </label>
 
             <input
               id="token"
@@ -86,8 +99,7 @@
               type="text"
               placeholder="SMO-XXXX-000"
               autocomplete="off"
-              required
-            >
+              required>
 
             <button
               class="btn btn-primary full"
@@ -97,7 +109,10 @@
 
           </form>
 
-          <div id="status-result" aria-live="polite"></div>
+          <div
+            id="status-result"
+            aria-live="polite">
+          </div>
 
         </div>
 
@@ -106,17 +121,22 @@
 
   </main>
 
+  <!-- FOOTER -->
   <footer class="site-footer">
 
     <div class="container footer-inner">
 
       <div class="footer-brand">
-        <img src="logo-rajawali.jpg" alt="Logo Rajawali">
+
+        <img
+          src="logo-rajawali.jpg"
+          alt="Logo Rajawali">
 
         <div>
           <b>RAJAWALI EVENT ORGANIZER</b>
           <small>Sport and Music Event</small>
         </div>
+
       </div>
 
       <div>
