@@ -1,0 +1,36 @@
+RAJAWALI EVENT ORGANIZER - KODE WEBSITE LANJUTAN
+
+PENTING: SQL dan dua Edge Function telah dipasang menurut keterangan pengguna. Jangan jalankan SQL lagi dan jangan mengubah fungsi register-event / quick-responder / delete-event.
+
+UPLOAD KE ROOT REPOSITORY GITHUB (folder utama yang sama dengan index.html):
+1. admin.html (ganti file lama)
+2. admin-branding.js (file baru)
+3. admin-exports.js (file baru)
+4. admin-registrant-actions.js (file baru)
+5. status.js (ganti file lama)
+6. registrasi-ulang.html (file baru atau ganti jika sudah ada)
+7. registrasi-ulang.js (file baru)
+
+Jangan upload file-file ini ke Supabase SQL Editor.
+Jangan menghapus admin.js, common.js, supabase-config.js, event.js, style.css, atau file lama lainnya.
+
+Pastikan file supabase-config.js tetap berada di root repository dan berisi URL + publishable key (bukan secret key).
+
+FITUR:
+- Admin dapat mengunggah logo penyelenggara dan banyak logo sponsor per event.
+- Sponsor dapat ditata di atas/bawah kartu.
+- Cetak PDF satu kartu per atlet/pelatih; foto 3x4 disediakan sebagai tempat kosong untuk ditempel manual.
+- QR pada kartu berisi participant_no unik per orang.
+- Halaman registrasi-ulang.html memindai QR atau menerima nomor peserta manual.
+- Ekspor daftar peserta Excel dan PDF.
+- Tombol Batalkan Persetujuan dan Hapus Pendaftaran tersedia sebagai add-on.
+
+SETELAH UPLOAD:
+1. Buka website dengan refresh paksa / hapus cache browser.
+2. Login admin, cek tab Buat/Edit Event dan bagian logo/sponsor.
+3. Cek tab Pendaftar untuk tombol ekspor, batalkan persetujuan, hapus.
+4. Cek cek-status.html, cari token yang statusnya sudah disetujui dan pembayaran verified/not_required.
+5. Coba unduh kartu PDF.
+6. Buka registrasi-ulang.html, login admin dan scan QR peserta.
+
+Jika ada error, kirim screenshot dan pesan error persisnya. Jangan kirim secret key.
