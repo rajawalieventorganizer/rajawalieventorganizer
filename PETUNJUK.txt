@@ -1,0 +1,23 @@
+PEMBARUAN PENGATURAN RAJAWALI EVENT ORGANIZER
+
+Isi paket:
+1. common.js — menggantikan common.js lama. Memuat pengaturan publik dari Supabase.
+2. admin-settings-extra.js — modul tambahan pengaturan admin. Tidak mengganti admin.js.
+
+CARA MEMASANG:
+1. Buka repositori GitHub Rajawali Event Organizer.
+2. Buka file common.js di folder utama (root).
+3. Pilih Edit, hapus isi lama, lalu tempel isi common.js dari paket ini. Simpan/Commit.
+4. Upload file admin-settings-extra.js ke folder utama (root) repositori.
+5. Pastikan nama file tepat: admin-settings-extra.js
+6. Jangan hapus atau mengganti admin.js, admin.html, schema.sql, supabase-config.js, dan file event lainnya.
+7. Tunggu GitHub Pages selesai menerbitkan perubahan.
+8. Buka website, masuk ke Panel Admin, pilih Identitas Website.
+9. Isi pengaturan lalu tekan Simpan Identitas.
+
+CATATAN:
+- File common.js ini mempertahankan menu event, utilitas tanggal/mata uang, dan fungsi Rajawali yang sudah ada.
+- Logo bisa diatur memakai URL gambar publik. Jika URL logo dikosongkan, logo lama logo-rajawali.jpg tetap digunakan.
+- Nomor rekening utama organisasi berbeda dari rekening yang diatur per event.
+- Pengaturan publik akan dibaca dari tabel site_settings.
+- Jangan pernah memasukkan service_role key atau sb_secret ke file website.
