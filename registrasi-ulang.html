@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1e46">
+<title>Registrasi Ulang QR | Rajawali Event Organizer</title>
+<link rel="icon" href="logo-rajawali.jpg"><link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script defer src="supabase-config.js"></script><script defer src="common.js"></script><script defer src="registrasi-ulang.js"></script>
+<style>
+.reo-checkin-wrap{max-width:820px;margin:36px auto}.reo-checkin-card{background:#fff;border:1px solid #e4e9f1;border-radius:14px;padding:22px;box-shadow:0 12px 35px rgba(14,34,69,.08)}
+#qr-reader{max-width:520px;margin:14px auto;border:1px solid #e5eaf2;border-radius:10px;overflow:hidden}#qr-reader video{border-radius:8px}
+.reo-checkin-manual{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:16px}.reo-checkin-manual input{min-width:0;padding:12px;border:1px solid #dce3ed;border-radius:8px}
+.reo-checkin-result{margin-top:16px;padding:15px;border-radius:10px;background:#f4f7fb;border:1px solid #e5eaf2}.reo-checkin-result.ok{background:#e8f7ee;border-color:#b9e4c8}.reo-checkin-result.warn{background:#fff7e8;border-color:#f4ddb0}.reo-checkin-result.bad{background:#fff0f0;border-color:#efcaca}
+.reo-checkin-result h3{margin:0 0 8px}.reo-checkin-result p{margin:4px 0;font-size:13px}.reo-checkin-hint{font-size:12px;color:#718096;line-height:1.6}
+@media(max-width:560px){.reo-checkin-card{padding:15px}.reo-checkin-manual{grid-template-columns:1fr}.reo-checkin-manual button{width:100%}}
+</style>
+</head>
+<body>
+<header class="site-header"><div class="container header-inner"><a class="brand" href="admin.html"><img src="logo-rajawali.jpg" alt="Logo Rajawali"><span><b>RAJAWALI</b><small>REGISTRASI ULANG</small></span></a><a href="admin.html" class="back-link">Kembali ke Panel Admin</a></div></header>
+<main class="section"><div class="container reo-checkin-wrap"><div class="reo-checkin-card">
+<span class="eyebrow">AKSES PETUGAS</span><h1>Registrasi Ulang Peserta</h1>
+<p class="reo-checkin-hint">Pindai QR Code pada kartu peserta. QR berisi nomor peserta unik. Satu kartu hanya dapat berhasil diregistrasi ulang satu kali.</p>
+<div id="checkin-auth-message" class="notice">Memeriksa sesi admin...</div>
+<div id="checkin-area" class="hidden"><div id="qr-reader"></div>
+<form id="manual-checkin-form" class="reo-checkin-manual"><input id="manual-participant-code" autocomplete="off" placeholder="Masukkan nomor peserta secara manual"><button type="submit" class="btn btn-primary">Periksa / Registrasi</button></form>
+<div class="reo-checkin-hint" style="margin-top:10px">Pastikan kamera diizinkan oleh browser. Apabila kamera tidak tersedia, masukkan nomor peserta secara manual.</div>
+<div id="checkin-result" aria-live="polite"></div></div>
+</div></div></main>
+<footer class="site-footer"><div class="container footer-inner"><div class="footer-brand"><img src="logo-rajawali.jpg" alt=""><div><b>RAJAWALI EVENT ORGANIZER</b><small>Petugas Registrasi Ulang</small></div></div><small>© <span data-year></span> Rajawali Event Organizer.</small></div></footer>
+</body></html>

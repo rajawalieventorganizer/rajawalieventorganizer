@@ -1,8 +1,14 @@
+[functions.quick-responder]
+verify_jwt = false
+
 [functions.register-event]
 verify_jwt = false
 
 [functions.check-status]
 verify_jwt = false
+
+[functions.checkin-participant]
+verify_jwt = true
 
 [functions.delete-event]
 verify_jwt = true
