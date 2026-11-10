@@ -117,22 +117,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     /peranpeserta|perananggota|rolepeserta|participantrole/.test(identity(field));
 
   // Mendukung "Nomor Whatsapp Aktif", bukan hanya "Nomor WhatsApp".
-  const isWhatsapp = field => {
-    const text = identity(field);
-    const label = clean(field.label);
-    const type = clean(field.field_type);
-
-    // Utamakan nama/label yang secara eksplisit menyebut WhatsApp.
-    if (/whatsapp|nohpaktif|nomorhpaktif|nomorteleponpendaftar/.test(text)) {
-      return true;
-    }
-
-    // Fallback untuk field telepon yang dibuat dari Form Builder,
-    // termasuk variasi nilai field_type dari versi Form Builder sebelumnya.
-    const phoneTypes = ["tel", "phone", "telephone", "phonenumber", "phonenumberinput"];
-    return phoneTypes.includes(type) &&
-      (/nomor|telepon|telephone|whatsapp|hp|ponsel/.test(label) || !label);
-  };
+  const isWhatsapp = field =>
+    /whatsapp|nohpaktif|nomorhpaktif|nomorteleponpendaftar/.test(identity(field));
 
   // Nama Klub hanya diperlakukan sebagai nama tim jika event memang
   // memakai model Tim/Grup. Untuk event Individu, ini tetap pertanyaan Admin.
@@ -143,10 +129,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const registrationField = fields.find(isRegistrationType);
   const participantNameField = fields.find(isParticipantName);
   const participantRoleField = fields.find(isParticipantRole);
-  const whatsappField =
-    fields.find(isWhatsapp) ||
-    fields.find(field => ["tel", "phone", "telephone", "phonenumber", "phonenumberinput"].includes(clean(field.field_type))) ||
-    fields.find(field => /whatsapp|nomor.*aktif|nomor.*telepon|nomor.*hp/i.test(String(field.label || "")));
+  const whatsappField = fields.find(isWhatsapp);
   const teamNameField = fields.find(isTeamName);
 
   const roles = Array.isArray(participantRoleField?.options)
@@ -213,7 +196,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (
     whatsappField &&
-    !["tel", "text", "phone", "telephone", "phone_number", "phonenumber"].includes(clean(whatsappField.field_type))
+    !["tel", "text"].includes(whatsappField.field_type)
   ) {
     missing.push("Kolom WhatsApp harus menggunakan Nomor telepon atau Jawaban singkat");
   }
@@ -602,8 +585,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   area.innerHTML = `
     <form id="register-form" novalidate>
       <div class="gf-public-intro">
-        <span class="eyebrow">FORMULIR PENDAFTARAN</span>
-        <h2>Daftar Event</h2>
+        <h2>Pendaftaran Peserta</h2>
         <p>
           Isi seluruh pertanyaan yang disediakan panitia.
           Kolom bertanda <b>*</b> wajib diisi.
