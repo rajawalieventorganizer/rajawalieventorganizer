@@ -12,3 +12,6 @@ verify_jwt = true
 
 [functions.delete-event]
 verify_jwt = true
+
+[functions.get-participant-photo]
+verify_jwt = false
