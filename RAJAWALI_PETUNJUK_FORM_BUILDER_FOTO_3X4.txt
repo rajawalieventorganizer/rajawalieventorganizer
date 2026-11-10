@@ -1,0 +1,83 @@
+RAJAWALI EVENT ORGANIZER
+PETUNJUK IMPLEMENTASI FORM BUILDER + PASFOTO 3 x 4
+
+HASIL PEMERIKSAAN KODE SAAT INI
+1. Tangkapan layar menunjukkan Form Builder belum memiliki kolom inti; event.js
+   menolak menampilkan form jika kolom yang diperlukan belum dibuat.
+2. admin.js menyimpan pertanyaan di event_fields.
+3. event.js merender kolom dari event_fields, tetapi mengenali kolom inti melalui
+   nama/label tertentu.
+4. Struktur database sudah memakai registrations sebagai induk dan participants
+   sebagai anak. Ini dipertahankan.
+5. status.js sudah menghasilkan kartu peserta PDF; area foto saat ini hanya placeholder.
+6. Source Edge Function quick-responder dan check-status tidak ada di repositori
+   GitHub yang dapat dibaca saat pemeriksaan.
+
+PERUBAHAN FRONTEND YANG HARUS DITERAPKAN
+A. Form Builder Admin
+- Siapkan otomatis kolom inti: Nama Peserta, Peran Peserta, dan WhatsApp Pendaftar.
+- Tambahkan Nama Tim/Klub dan Jenis Pendaftaran sesuai mode event.
+- Beri penanda "Kolom Inti Sistem"; Admin tidak dapat menghapus atau menduplikasinya.
+- Admin dapat mengubah label dan opsi peran, menambah pertanyaan, mengatur urutan,
+  serta menentukan pertanyaan tambahan yang wajib diisi.
+- Tambahkan tipe pertanyaan "Unggah Foto Peserta (3 x 4 cm)".
+- Batasi satu pertanyaan foto per event; pertanyaan ini muncul pada setiap baris peserta.
+
+B. Formulir Publik
+- Formulir hanya mengambil pertanyaan dari event_fields yang diatur Admin.
+- Field foto dipasang pada setiap peserta, bukan sekali untuk satu pendaftaran.
+- Terima JPG/PNG/WebP hingga 5 MB sebelum pemrosesan.
+- Crop tengah ke rasio potret 3:4 dan kompres menjadi JPEG 450 x 600 px,
+  maksimal 512 KB.
+- Upload ke bucket privat participant-photos.
+- Kirim metadata foto melalui custom_data.participant_photos bersama payload
+  pendaftaran yang sudah dipakai. Jangan mengubah struktur participants payload.
+
+C. Database dan kartu
+- Jalankan SQL migration setelah quick-responder diperiksa.
+- Trigger menghubungkan path foto ke participants.photo_path.
+- Deploy Edge Function get-participant-photo.
+- Tambahkan baris berikut ke config.toml:
+  [functions.get-participant-photo]
+  verify_jwt = false
+- status.js memanggil fungsi tersebut dengan token + participant_no, menerima
+  signed URL 5 menit, lalu memasukkan foto ke kotak pasfoto di PDF.
+
+KODE BACKEND WAJIB DIVERIFIKASI
+A. quick-responder:
+   Pastikan custom_data dipertahankan saat membuat registrations dan parent
+   registration dibuat sebelum participants. Jika function membersihkan/whitelist
+   custom_data, sesuaikan dengan kontrak participant_photos.
+B. check-status:
+   Pastikan response participants menyediakan participant_no dan aturan
+   can_print_card tetap mensyaratkan pembayaran valid serta persetujuan.
+C. Pendaftaran kolektif:
+   Tetap satu registration/token/tagihan untuk satu kelompok; banyak participants;
+   biaya dihitung server berdasarkan fee_amount dan fee_basis dari event.
+D. Penguncian:
+   Setelah payment_status menjadi verified, server menolak perubahan peserta.
+   Jangan hanya menonaktifkan tombol di browser.
+
+PRIVASI
+- Bucket pasfoto dibuat privat.
+- Tidak ada policy SELECT publik untuk Storage.
+- Signed URL hanya diberikan setelah token, nomor peserta, status pembayaran,
+  dan status persetujuan cocok.
+- Jangan pernah meletakkan SUPABASE_SERVICE_ROLE_KEY pada JavaScript publik.
+- Hapus file yatim dari Storage melalui prosedur server/admin; DELETE peserta
+  melalui cascade database tidak otomatis menghapus object Storage.
+
+URUTAN UJI SEBELUM PRODUKSI
+1. Event uji gratis: dua peserta, dua foto, satu token, satu tagihan Rp0.
+2. Event uji berbayar: tiga peserta, fee_basis=participant, jumlah tagihan tepat.
+3. Coba menambah peserta sebelum pembayaran diverifikasi: harus diperbolehkan.
+4. Verifikasi pembayaran, lalu coba menambah/mengubah peserta: harus ditolak server.
+5. Setujui pendaftaran dan unduh PDF: tiap kartu menampilkan foto + QR peserta tepat.
+6. Check-in kedua QR; pastikan check-in dan rekap tidak berubah.
+7. Uji status token, Excel, PDF ekspor, hapus pendaftaran, dan retensi file.
+
+CATATAN PEMASANGAN
+Paket ini adalah persiapan database dan fungsi pengambil foto, bukan bukti bahwa
+website sudah diperbarui. Jangan jalankan SQL sebelum source quick-responder
+diperiksa. Koneksi GitHub saat ini menolak operasi tulis (HTTP 403), sehingga
+file website tidak dapat saya commit/deploy dari koneksi ini.
