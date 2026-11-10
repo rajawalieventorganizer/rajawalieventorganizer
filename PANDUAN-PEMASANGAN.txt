@@ -1,0 +1,44 @@
+RAJAWALI EVENT ORGANIZER — MODUL REKAP REGISTRASI ULANG
+
+ISI PAKET:
+1. admin.html          -> GANTI file admin.html yang ada di folder utama GitHub.
+2. admin-attendance.js -> TAMBAHKAN file baru ini di folder utama GitHub.
+
+LANGKAH:
+1. Buka repository Rajawali Event Organizer di GitHub.
+2. Upload admin.html dan pilih Replace file / ganti file yang lama.
+3. Upload admin-attendance.js sebagai file baru di folder utama (sejajar dengan admin.js).
+4. Commit changes.
+5. Buka Panel Admin, login, lalu pilih tab "Rekap Kehadiran".
+6. Pilih event. Tabel menampilkan peserta yang status pendaftarannya approved dan pembayaran verified/not_required.
+7. Gunakan filter status "Belum registrasi ulang" untuk melihat dan mengunduh daftar yang belum hadir.
+
+FITUR:
+- Rekap jumlah peserta yang memenuhi syarat, sudah check-in, belum check-in, dan persentase.
+- Daftar per peserta, bukan per token pendaftaran (setiap atlet/pelatih satu baris).
+- Filter event, peran atlet/pelatih, status check-in, dan pencarian nama/nomor/tim.
+- Export Excel dan PDF mengikuti filter yang dipilih.
+- Pembaruan setelah perubahan check-in melalui Supabase Realtime jika diaktifkan; polling otomatis 30 detik dan tombol Perbarui Data menjadi cadangan.
+
+PENTING:
+- Tidak perlu menjalankan ulang SQL lama.
+- Modul ini membaca tabel public.participants, public.registrations, public.events, dan public.participant_checkins.
+- Pastikan Edge Function checkin-participant yang aktif menyimpan kolom event_id, participant_id, checked_in_by ke participant_checkins (jangan memasukkan participant_no karena kolom itu tidak ada pada SQL migrasi yang digunakan).
+- Jangan menghapus admin.js, admin-exports.js, admin-branding.js, admin-registrant-actions.js, common.js, atau supabase-config.js.
+
+OPSIONAL: AKTIFKAN REALTIME
+Jalankan sekali di Supabase SQL Editor bila ingin rekap merespons perubahan check-in lebih cepat dari polling 30 detik:
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'participant_checkins'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.participant_checkins;
+  END IF;
+END $$;
+
+Catatan: modul belum mengubah database atau Edge Function. Pengujian akhir perlu dilakukan pada event yang memiliki peserta dengan pendaftaran approved dan pembayaran valid.
