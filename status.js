@@ -1,7 +1,8 @@
 
 /* RAJAWALI EVENT ORGANIZER
    Cek status pendaftaran dan cetak kartu PDF setiap peserta.
-   QR menggunakan QRCode.js yang kompatibel dengan browser HP.
+   Mendukung pasfoto 3 x 4 cm dari Supabase Storage privat.
+   QR menggunakan QRCode.js.
 */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -50,6 +51,11 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(detail);
       }
 
+      // Ambil foto hanya jika kartu sudah boleh diterbitkan.
+      if (data.can_print_card) {
+        await attachParticipantPhotoUrls(data);
+      }
+
       renderStatus(data);
 
     } catch (error) {
@@ -66,6 +72,59 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+
+  // ================================================
+  // MENGAMBIL FOTO PESERTA MELALUI EDGE FUNCTION
+  // ================================================
+
+  async function attachParticipantPhotoUrls(data) {
+    if (
+      !data ||
+      !data.token ||
+      !Array.isArray(data.participants)
+    ) {
+      return;
+    }
+
+    await Promise.all(
+      data.participants.map(async participant => {
+
+        if (!participant.participant_no) return;
+
+        try {
+          const { data: photoResult, error } =
+            await db.functions.invoke(
+              "get-participant-photo",
+              {
+                body: {
+                  token: data.token,
+                  participant_no: participant.participant_no
+                }
+              }
+            );
+
+          if (error || !photoResult?.photo_url) {
+            console.warn(
+              "Foto belum tersedia:",
+              participant.participant_no
+            );
+            return;
+          }
+
+          participant.photo_url = photoResult.photo_url;
+
+        } catch (error) {
+          console.warn(
+            "Foto peserta tidak dapat dimuat:",
+            error
+          );
+        }
+
+      })
+    );
+  }
+
+
   function statusLabel(value) {
     const labels = {
       pending: "Menunggu",
@@ -77,6 +136,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     return labels[value] || value || "-";
   }
+
+
+  // ================================================
+  // TAMPILAN STATUS PENDAFTARAN
+  // ================================================
 
   function renderStatus(data) {
     const people = Array.isArray(data.participants)
@@ -210,6 +274,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     injectStatusStyles();
   }
+
+
+  // ================================================
+  // CSS STATUS
+  // ================================================
 
   function injectStatusStyles() {
     if (document.getElementById("reo-status-card-css")) return;
@@ -352,7 +421,11 @@ document.addEventListener("DOMContentLoaded", () => {
     document.head.appendChild(style);
   }
 
-  // Memuat PDF dan pustaka QR yang benar.
+
+  // ================================================
+  // MEMUAT PUSTAKA PDF DAN QR CODE
+  // ================================================
+
   async function loadScript(src, test, label) {
     if (test()) return;
 
@@ -363,14 +436,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
       script.onload = () => {
         if (test()) resolve();
-        else reject(new Error(label + " tidak menyediakan fungsi yang dibutuhkan."));
+        else reject(
+          new Error(
+            label + " tidak menyediakan fungsi yang dibutuhkan."
+          )
+        );
       };
 
-      script.onerror = () => reject(new Error("Gagal memuat " + label));
+      script.onerror = () => reject(
+        new Error("Gagal memuat " + label)
+      );
 
       document.head.appendChild(script);
     });
   }
+
 
   async function ensureCardLibraries() {
     if (!window.jspdf?.jsPDF) {
@@ -388,8 +468,10 @@ document.addEventListener("DOMContentLoaded", () => {
             () => Boolean(window.jspdf?.jsPDF),
             "Pustaka PDF"
           );
+
           loaded = true;
           break;
+
         } catch (error) {
           console.warn(error.message);
         }
@@ -415,8 +497,10 @@ document.addEventListener("DOMContentLoaded", () => {
             () => typeof window.QRCode === "function",
             "Pustaka QR Code"
           );
+
           loaded = true;
           break;
+
         } catch (error) {
           console.warn(error.message);
         }
@@ -430,7 +514,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // QRCode.js menghasilkan canvas, kemudian diubah menjadi PNG untuk PDF.
+
+  // ================================================
+  // MEMBUAT QR CODE PESERTA
+  // ================================================
+
   async function createQrDataUrl(value, size = 260) {
     if (typeof window.QRCode !== "function") {
       throw new Error("Mesin QR Code belum tersedia.");
@@ -479,7 +567,9 @@ document.addEventListener("DOMContentLoaded", () => {
         output.height = size;
 
         const context = output.getContext("2d");
-        if (!context) throw new Error("Canvas QR tidak tersedia.");
+        if (!context) {
+          throw new Error("Canvas QR tidak tersedia.");
+        }
 
         context.fillStyle = "#ffffff";
         context.fillRect(0, 0, size, size);
@@ -495,14 +585,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Mengubah gambar logo menjadi data PNG agar dapat dimasukkan ke PDF.
+
+  // ================================================
+  // MENGUBAH URL GAMBAR MENJADI DATA PNG
+  // ================================================
+
   async function imageAsDataUrl(url) {
     if (!url) return null;
 
-    const response = await fetch(url, { mode: "cors" });
+    const response = await fetch(url, {
+      mode: "cors"
+    });
 
     if (!response.ok) {
-      throw new Error("Logo tidak dapat diunduh: " + url);
+      throw new Error("Gambar tidak dapat diunduh: " + url);
     }
 
     const blob = await response.blob();
@@ -515,13 +611,21 @@ document.addEventListener("DOMContentLoaded", () => {
         image.onload = () => {
           try {
             const canvas = document.createElement("canvas");
-            canvas.width = image.naturalWidth || image.width;
-            canvas.height = image.naturalHeight || image.height;
+
+            canvas.width =
+              image.naturalWidth || image.width;
+
+            canvas.height =
+              image.naturalHeight || image.height;
 
             const context = canvas.getContext("2d");
-            if (!context) throw new Error("Canvas gambar tidak tersedia.");
+
+            if (!context) {
+              throw new Error("Canvas gambar tidak tersedia.");
+            }
 
             context.drawImage(image, 0, 0);
+
             resolve(canvas.toDataURL("image/png"));
 
           } catch (error) {
@@ -530,7 +634,7 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         image.onerror = () => reject(
-          new Error("Gagal membaca gambar logo.")
+          new Error("Gagal membaca gambar.")
         );
 
         image.src = objectUrl;
@@ -541,9 +645,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+
   function fitImage(pdf, data, x, y, maxW, maxH) {
     const props = pdf.getImageProperties(data);
-    const ratio = Math.min(maxW / props.width, maxH / props.height);
+
+    const ratio = Math.min(
+      maxW / props.width,
+      maxH / props.height
+    );
 
     const w = props.width * ratio;
     const h = props.height * ratio;
@@ -558,7 +667,18 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
-  function drawSponsorRows(pdf, sponsors, dataByUrl, startY, pageWidth) {
+
+  // ================================================
+  // LOGO SPONSOR
+  // ================================================
+
+  function drawSponsorRows(
+    pdf,
+    sponsors,
+    dataByUrl,
+    startY,
+    pageWidth
+  ) {
     if (!sponsors.length) return 0;
 
     const columns = 7;
@@ -571,7 +691,10 @@ document.addEventListener("DOMContentLoaded", () => {
     for (let i = 0; i < sponsors.length; i++) {
       const row = Math.floor(i / columns);
       const col = i % columns;
-      const image = dataByUrl.get(sponsors[i].logo_url);
+
+      const image = dataByUrl.get(
+        sponsors[i].logo_url
+      );
 
       if (!image) continue;
 
@@ -588,14 +711,22 @@ document.addEventListener("DOMContentLoaded", () => {
     return rows * rowH;
   }
 
+
+  // ================================================
+  // MEMBUAT KARTU PESERTA PDF
+  // ================================================
+
   async function buildCards(data) {
     await ensureCardLibraries();
 
     const { jsPDF } = window.jspdf;
+
     const people = data.participants || [];
 
     if (!people.length) {
-      throw new Error("Belum ada data peserta untuk dibuatkan kartu.");
+      throw new Error(
+        "Belum ada data peserta untuk dibuatkan kartu."
+      );
     }
 
     const sponsors = Array.isArray(data.sponsors)
@@ -610,11 +741,15 @@ document.addEventListener("DOMContentLoaded", () => {
       (x) => x.position !== "top"
     );
 
-    const topHeight = Math.ceil(topSponsors.length / 7) * 6.2;
-    const bottomHeight = Math.ceil(bottomSponsors.length / 7) * 6.2;
+    const topHeight =
+      Math.ceil(topSponsors.length / 7) * 6.2;
+
+    const bottomHeight =
+      Math.ceil(bottomSponsors.length / 7) * 6.2;
 
     const pageWidth = 148;
-    const pageHeight = 84 + topHeight + bottomHeight;
+    const pageHeight =
+      84 + topHeight + bottomHeight;
 
     const pdf = new jsPDF({
       orientation: "landscape",
@@ -625,27 +760,44 @@ document.addEventListener("DOMContentLoaded", () => {
     const imageMap = new Map();
 
     const logoUrl =
-      data.event?.organizer_logo_url || "logo-rajawali.jpg";
+      data.event?.organizer_logo_url ||
+      "logo-rajawali.jpg";
 
+    // Logo, sponsor, dan foto seluruh peserta dimuat.
     const urls = [
       logoUrl,
-      ...sponsors.map((x) => x.logo_url)
+      ...sponsors.map((x) => x.logo_url),
+      ...people.map((x) => x.photo_url)
     ].filter(Boolean);
 
     for (const url of new Set(urls)) {
       try {
-        imageMap.set(url, await imageAsDataUrl(url));
+        imageMap.set(
+          url,
+          await imageAsDataUrl(url)
+        );
+
       } catch (error) {
-        console.warn("Logo tidak dapat ditampilkan:", error);
+        console.warn(
+          "Gambar tidak dapat ditampilkan:",
+          error
+        );
       }
     }
 
+
+    // Setiap peserta mendapat satu halaman kartu.
     for (let index = 0; index < people.length; index++) {
+
       if (index > 0) {
-        pdf.addPage([pageWidth, pageHeight], "landscape");
+        pdf.addPage(
+          [pageWidth, pageHeight],
+          "landscape"
+        );
       }
 
       const p = people[index];
+
 
       // HEADER KARTU
       pdf.setFillColor(10, 28, 65);
@@ -660,16 +812,29 @@ document.addEventListener("DOMContentLoaded", () => {
       const organizer = imageMap.get(logoUrl);
 
       if (organizer) {
-        fitImage(pdf, organizer, 5, 2, 31, 14);
+        fitImage(
+          pdf,
+          organizer,
+          5,
+          2,
+          31,
+          14
+        );
       }
 
       pdf.setTextColor(255, 255, 255);
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(10);
-      pdf.text("RAJAWALI EVENT ORGANIZER", 40, 8);
+
+      pdf.text(
+        "RAJAWALI EVENT ORGANIZER",
+        40,
+        8
+      );
 
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(6.5);
+
       pdf.text(
         String(data.event_title || "EVENT RAJAWALI")
           .toUpperCase()
@@ -678,10 +843,18 @@ document.addEventListener("DOMContentLoaded", () => {
         13
       );
 
+
       // SPONSOR ATAS
       if (topSponsors.length) {
         pdf.setFillColor(246, 248, 251);
-        pdf.rect(0, 18, pageWidth, topHeight, "F");
+
+        pdf.rect(
+          0,
+          18,
+          pageWidth,
+          topHeight,
+          "F"
+        );
 
         drawSponsorRows(
           pdf,
@@ -694,14 +867,64 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const contentY = 18 + topHeight;
 
+
       // BAGIAN ISI
       pdf.setFillColor(255, 255, 255);
-      pdf.rect(0, contentY, pageWidth, 56, "F");
 
-      // KOTAK FOTO 3 X 4
+      pdf.rect(
+        0,
+        contentY,
+        pageWidth,
+        56,
+        "F"
+      );
+
+
+      // ============================================
+      // FOTO PESERTA 3 x 4 CM
+      // ============================================
+
+      const participantPhoto =
+        imageMap.get(p.photo_url);
+
+      if (participantPhoto) {
+
+        pdf.addImage(
+          participantPhoto,
+          "PNG",
+          5,
+          contentY + 4,
+          30,
+          40
+        );
+
+      } else {
+
+        pdf.setTextColor(95, 108, 128);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(7);
+
+        pdf.text(
+          "FOTO BELUM ADA",
+          20,
+          contentY + 21,
+          { align: "center" }
+        );
+
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(6);
+
+        pdf.text(
+          "3 x 4 cm",
+          20,
+          contentY + 26,
+          { align: "center" }
+        );
+
+      }
+
       pdf.setDrawColor(170, 181, 198);
       pdf.setLineWidth(0.35);
-      pdf.setLineDashPattern([1.2, 1.2], 0);
 
       pdf.roundedRect(
         5,
@@ -713,23 +936,10 @@ document.addEventListener("DOMContentLoaded", () => {
         "S"
       );
 
-      pdf.setLineDashPattern([], 0);
-
-      pdf.setTextColor(95, 108, 128);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(7);
-      pdf.text("TEMPEL FOTO", 20, contentY + 21, {
-        align: "center"
-      });
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(6);
-      pdf.text("3 x 4 cm", 20, contentY + 26, {
-        align: "center"
-      });
 
       // JUDUL KARTU
       pdf.setFillColor(185, 34, 42);
+
       pdf.roundedRect(
         39,
         contentY + 4,
@@ -743,16 +953,27 @@ document.addEventListener("DOMContentLoaded", () => {
       pdf.setTextColor(255, 255, 255);
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(7.5);
-      pdf.text("KARTU PESERTA", 63, contentY + 8.8, {
-        align: "center"
-      });
+
+      pdf.text(
+        "KARTU PESERTA",
+        63,
+        contentY + 8.8,
+        { align: "center" }
+      );
+
 
       // IDENTITAS PESERTA
       pdf.setTextColor(22, 42, 75);
       pdf.setFontSize(8);
-      pdf.text("NAMA", 39, contentY + 17);
+
+      pdf.text(
+        "NAMA",
+        39,
+        contentY + 17
+      );
 
       pdf.setFontSize(10);
+
       pdf.text(
         String(p.full_name || "-").slice(0, 34),
         39,
@@ -760,7 +981,12 @@ document.addEventListener("DOMContentLoaded", () => {
       );
 
       pdf.setFontSize(7);
-      pdf.text("PERAN", 39, contentY + 30);
+
+      pdf.text(
+        "PERAN",
+        39,
+        contentY + 30
+      );
 
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(8.5);
@@ -777,30 +1003,46 @@ document.addEventListener("DOMContentLoaded", () => {
       pdf.setFont("helvetica", "normal");
       pdf.setTextColor(22, 42, 75);
       pdf.setFontSize(7);
-      pdf.text("TIM / KLUB", 39, contentY + 42);
+
+      pdf.text(
+        "TIM / KLUB",
+        39,
+        contentY + 42
+      );
 
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(8);
 
       pdf.text(
-        String(p.team_name || data.team_name || "Individu")
-          .slice(0, 32),
+        String(
+          p.team_name ||
+          data.team_name ||
+          "Individu"
+        ).slice(0, 32),
         39,
         contentY + 47
       );
 
+
+      // ============================================
       // QR CODE UNIK SETIAP PESERTA
+      // ============================================
+
       const qrValue = String(
-        p.qr_value || p.participant_no || ""
+        p.qr_value ||
+        p.participant_no ||
+        ""
       );
 
       if (!qrValue) {
         throw new Error(
-          "Nomor peserta kosong untuk " + (p.full_name || "peserta")
+          "Nomor peserta kosong untuk " +
+          (p.full_name || "peserta")
         );
       }
 
-      const qrImage = await createQrDataUrl(qrValue, 300);
+      const qrImage =
+        await createQrDataUrl(qrValue, 300);
 
       pdf.addImage(
         qrImage,
@@ -826,16 +1068,20 @@ document.addEventListener("DOMContentLoaded", () => {
       pdf.setFontSize(6);
 
       pdf.text(
-        "No: " + String(p.participant_no || "-").slice(0, 26),
+        "No: " +
+        String(p.participant_no || "-").slice(0, 26),
         111,
         contentY + 47
       );
+
 
       // SPONSOR BAWAH
       const footerY = contentY + 56;
 
       if (bottomSponsors.length) {
+
         pdf.setFillColor(246, 248, 251);
+
         pdf.rect(
           0,
           footerY,
@@ -853,11 +1099,19 @@ document.addEventListener("DOMContentLoaded", () => {
         );
       }
 
+
       // FOOTER KARTU
       const tokenY = footerY + bottomHeight;
 
       pdf.setFillColor(10, 28, 65);
-      pdf.rect(0, tokenY, pageWidth, 10, "F");
+
+      pdf.rect(
+        0,
+        tokenY,
+        pageWidth,
+        10,
+        "F"
+      );
 
       pdf.setTextColor(255, 255, 255);
       pdf.setFont("helvetica", "normal");
@@ -875,12 +1129,19 @@ document.addEventListener("DOMContentLoaded", () => {
         tokenY + 6.5,
         { align: "right" }
       );
+
     }
 
     return pdf;
   }
 
+
+  // ================================================
+  // TOMBOL LIHAT DAN UNDUH KARTU
+  // ================================================
+
   async function handleCardAction(data, openPreview) {
+
     const button = openPreview
       ? $("#reo-preview-cards")
       : $("#download-cards");
@@ -891,22 +1152,35 @@ document.addEventListener("DOMContentLoaded", () => {
     button.textContent = "Menyiapkan kartu...";
 
     try {
+
       const pdf = await buildCards(data);
 
       const filename =
         "kartu-peserta-rajawali-" +
-        String(data.token || "event").replace(/[^A-Z0-9-]/gi, "-") +
+        String(data.token || "event")
+          .replace(/[^A-Z0-9-]/gi, "-") +
         ".pdf";
 
       if (openPreview) {
-        const url = URL.createObjectURL(pdf.output("blob"));
+
+        const url = URL.createObjectURL(
+          pdf.output("blob")
+        );
+
         window.open(url, "_blank");
+
       } else {
+
         pdf.save(filename);
+
       }
 
     } catch (error) {
-      console.error("Pembuatan kartu peserta:", error);
+
+      console.error(
+        "Pembuatan kartu peserta:",
+        error
+      );
 
       alert(
         "Kartu peserta belum dapat dibuat: " +
@@ -914,8 +1188,11 @@ document.addEventListener("DOMContentLoaded", () => {
       );
 
     } finally {
+
       button.disabled = false;
       button.textContent = original;
+
     }
   }
+
 });
