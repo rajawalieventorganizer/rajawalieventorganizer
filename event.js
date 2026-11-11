@@ -852,6 +852,56 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // ------------------------------------------------
+  // MEMBACA DETAIL ERROR DARI SUPABASE EDGE FUNCTION
+  // ------------------------------------------------
+
+  async function getRegistrationErrorDetail(error) {
+    const context = error?.context;
+    const status = Number(context?.status || error?.status || 0);
+    let responseText = "";
+
+    try {
+      if (context && typeof context.clone === "function") {
+        responseText = await context.clone().text();
+      } else if (context && typeof context.text === "function") {
+        responseText = await context.text();
+      }
+    } catch (readError) {
+      console.warn("Tidak dapat membaca isi respons Edge Function:", readError);
+    }
+
+    let serverMessage = "";
+    if (responseText) {
+      try {
+        const parsed = JSON.parse(responseText);
+        serverMessage =
+          parsed.error ||
+          parsed.message ||
+          parsed.msg ||
+          parsed.details ||
+          JSON.stringify(parsed);
+      } catch {
+        serverMessage = responseText;
+      }
+    }
+
+    // Batasi panjang agar layar HP tetap mudah dibaca.
+    serverMessage = String(serverMessage || "").trim().slice(0, 1400);
+
+    if (status && serverMessage) {
+      return `Server menolak pendaftaran (HTTP ${status}): ${serverMessage}`;
+    }
+    if (status) {
+      return `Server menolak pendaftaran (HTTP ${status}). Periksa log Edge Function quick-responder di Supabase.`;
+    }
+    if (serverMessage) {
+      return serverMessage;
+    }
+
+    return error?.message || "Periksa koneksi dan konfigurasi Supabase.";
+  }
+
+  // ------------------------------------------------
   // 9. VALIDASI DAN SIMPAN PENDAFTARAN
   // ------------------------------------------------
 
@@ -1105,17 +1155,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (error) {
       console.error("Pendaftaran event:", error);
 
-      // Jika pendaftaran gagal setelah upload, file yang belum terpakai
-      // mungkin tertinggal di bucket private dan dapat dibersihkan Admin.
+      // Jika pendaftaran gagal setelah upload, file tetap private.
+      // Simpan path pada console untuk membantu Admin melakukan pemeriksaan.
       if (uploadedFiles.length) {
-        console.warn("File unggahan yang belum terpakai:", uploadedFiles);
+        console.warn("File unggahan yang perlu diperiksa:", uploadedFiles);
       }
 
+      const errorDetail = await getRegistrationErrorDetail(error);
+
       $("#registration-result").innerHTML = `
-        <p class="form-message">
-          Pendaftaran gagal:
-          ${esc(error.message || "Periksa koneksi dan konfigurasi Supabase.")}
-        </p>
+        <div class="form-message">
+          <b>Pendaftaran gagal.</b>
+          <p>${esc(errorDetail)}</p>
+          <small>
+            Catat pesan lengkap ini untuk pemeriksaan Supabase.
+            Jangan mengirim ulang berkali-kali sebelum penyebabnya diketahui.
+          </small>
+        </div>
       `;
 
     } finally {
