@@ -116,9 +116,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const isParticipantRole = field =>
     /peranpeserta|perananggota|rolepeserta|participantrole/.test(identity(field));
 
-  // Mendukung "Nomor Whatsapp Aktif", bukan hanya "Nomor WhatsApp".
+  // Mengenali berbagai variasi nama kolom kontak: WhatsApp, WA, HP, dan telepon.
   const isWhatsapp = field =>
-    /whatsapp|nohpaktif|nomorhpaktif|nomorteleponpendaftar/.test(identity(field));
+    /whatsapp|whatsap|nomorwa|nowa|nohp|nomorhp|nomortelepon|notelp|telepon|telephone|handphone|ponsel|phonenumber|phone/.test(identity(field));
 
   // Nama Klub hanya diperlakukan sebagai nama tim jika event memang
   // memakai model Tim/Grup. Untuk event Individu, ini tetap pertanyaan Admin.
@@ -129,7 +129,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const registrationField = fields.find(isRegistrationType);
   const participantNameField = fields.find(isParticipantName);
   const participantRoleField = fields.find(isParticipantRole);
-  const whatsappField = fields.find(isWhatsapp);
+  const whatsappFieldByType = fields.filter(
+    field => clean(field.field_type) === "tel"
+  );
+
+  // Jika labelnya tidak spesifik, gunakan kolom Telepon hanya bila ada tepat satu.
+  const whatsappField =
+    fields.find(isWhatsapp) ||
+    (whatsappFieldByType.length === 1 ? whatsappFieldByType[0] : null);
   const teamNameField = fields.find(isTeamName);
 
   const roles = Array.isArray(participantRoleField?.options)
@@ -188,10 +195,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     !roles.length
   ) {
     missing.push("Tambahkan pilihan pada kolom Peran Peserta");
-  }
-
-  if (!whatsappField) {
-    missing.push("Nomor WhatsApp Aktif (Nomor telepon)");
   }
 
   if (
@@ -503,7 +506,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       <div class="gf-public-question">
         <label for="registrant-whatsapp">
           <span class="gf-public-title">
-            ${esc(field.label)}${requiredMark(field, true)}
+            ${esc(field?.label || "Nomor WhatsApp Aktif")}${requiredMark(field, true)}
           </span>
           <input
             id="registrant-whatsapp"
@@ -580,6 +583,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       `
       : "";
 
+  const generatedWhatsapp = !whatsappField ? renderWhatsapp(null) : "";
+
   const fieldsHtml = fields.map(renderFieldInAdminOrder).join("");
 
   area.innerHTML = `
@@ -594,6 +599,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       ${generatedRegistrationType}
       ${generatedBothType}
+      ${generatedWhatsapp}
       ${fieldsHtml}
 
       ${event.fee_mode === "manual_transfer" && Number(event.fee_amount || 0) > 0 ? `
