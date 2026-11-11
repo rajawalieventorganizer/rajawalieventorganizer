@@ -1,1 +1,8 @@
-Ganti kedua file di GitHub: event.js dan event.html. event.html sudah memakai event.js?v=20261110-2 agar browser memuat JavaScript terbaru. Commit kedua file. Setelah commit, buka ulang halaman event.
+RAJAWALI EVENT ORGANIZER - KOREKSI CACHE
+
+1. Ganti event.html dan event.js di repository dengan kedua file dalam ZIP ini.
+2. event.js dipertahankan persis sama dengan file yang Anda unggah.
+3. Satu-satunya perubahan adalah penanda versi pada event.html:
+   event.js?v=20261110-2 -> event.js?v=20261111-1
+   Perubahan ini memaksa browser memuat JavaScript terbaru, bukan salinan cache lama.
+4. Setelah deploy, tutup/buka kembali halaman event atau muat ulang.
