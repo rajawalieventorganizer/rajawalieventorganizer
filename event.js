@@ -116,7 +116,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const isParticipantRole = field =>
     /peranpeserta|perananggota|rolepeserta|participantrole/.test(identity(field));
 
-  // Mengenali berbagai variasi nama kolom kontak: WhatsApp, WA, HP, dan telepon.
+  // Mengenali variasi nama kontak yang umum: WhatsApp, WA, HP, dan telepon.
   const isWhatsapp = field =>
     /whatsapp|whatsap|nomorwa|nowa|nohp|nomorhp|nomortelepon|notelp|telepon|telephone|handphone|ponsel|phonenumber|phone/.test(identity(field));
 
@@ -133,7 +133,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     field => clean(field.field_type) === "tel"
   );
 
-  // Jika labelnya tidak spesifik, gunakan kolom Telepon hanya bila ada tepat satu.
   const whatsappField =
     fields.find(isWhatsapp) ||
     (whatsappFieldByType.length === 1 ? whatsappFieldByType[0] : null);
@@ -391,8 +390,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           <small class="gf-public-help">${fileHint(field)}</small>
           <div class="gf-upload-preview" data-upload-preview="${esc(key)}" hidden></div>
           <small class="gf-upload-note">
-            Pemilihan file tersedia. Penyimpanan file ke server perlu diaktifkan
-            melalui konfigurasi Storage dan fungsi server.
+            File akan diunggah dengan aman ke penyimpanan Supabase. Foto maksimal 5 MB
+            dan dokumen maksimal 10 MB.
           </small>
         </div>
       `;
@@ -934,17 +933,33 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    // File input baru ditampilkan dan divalidasi di tahap ini.
-    // File belum dikirim ke Storage karena upload publik belum dikonfigurasi.
+    // Ambil file unggahan dan validasi ulang sebelum mengirim ke Supabase Storage.
     const selectedUploads = [
       ...form.querySelectorAll("[data-upload-field]")
     ].filter(input => input.files && input.files.length > 0);
 
-    if (selectedUploads.length) {
-      alert(
-        "Kolom unggah sudah tampil, tetapi penyimpanan foto/dokumen ke Supabase belum diaktifkan. File belum dikirim. Kosongkan kolom unggah untuk melanjutkan pendaftaran, atau tunggu integrasi Storage."
-      );
-      return;
+    for (const input of selectedUploads) {
+      const file = input.files[0];
+      const isPhoto = input.dataset.uploadKind === "photo";
+      const maxBytes = isPhoto ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+
+      if (file.size > maxBytes) {
+        alert(isPhoto ? "Ukuran foto maksimal 5 MB." : "Ukuran dokumen maksimal 10 MB.");
+        input.focus();
+        return;
+      }
+
+      if (isPhoto && !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        alert("Foto harus berformat JPG, JPEG, atau WebP.");
+        input.focus();
+        return;
+      }
+
+      if (!isPhoto && !/\\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv)$/i.test(file.name)) {
+        alert("Format dokumen belum didukung.");
+        input.focus();
+        return;
+      }
     }
 
     const button = form.querySelector('[type="submit"]');
@@ -981,21 +996,59 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       });
 
-    // Kontrak payload dipertahankan agar tetap sesuai dengan
-    // Edge Function quick-responder yang digunakan saat ini.
-    const payload = {
-      event_id: event.id,
-      registration_type: registrationType,
-      team_name: teamName,
-      whatsapp,
-      participants: names.map((name, index) => ({
-        name,
-        role: roleValues[index] || defaultRole || "Peserta"
-      })),
-      custom_data: custom
-    };
+    // Upload file dilakukan sebelum pendaftaran dikirim.
+    // Metadata path disimpan di custom_data; bucket dibuat private.
+    const uploadedFiles = [];
 
     try {
+      for (const input of selectedUploads) {
+        const key = input.dataset.uploadKey;
+        const file = input.files[0];
+        const safeName = file.name
+          .normalize("NFKD")
+          .replace(/[^a-zA-Z0-9._-]/g, "_")
+          .slice(-100) || "file";
+        const objectPath = `${event.id}/${key}/${crypto.randomUUID()}-${safeName}`;
+
+        button.textContent = "Mengunggah file...";
+
+        const { error: uploadError } = await db.storage
+          .from("registration-files")
+          .upload(objectPath, file, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: file.type
+          });
+
+        if (uploadError) {
+          throw new Error(`Gagal mengunggah ${file.name}: ${uploadError.message}`);
+        }
+
+        uploadedFiles.push(objectPath);
+        custom[key] = {
+          bucket: "registration-files",
+          path: objectPath,
+          file_name: file.name,
+          mime_type: file.type,
+          size_bytes: file.size
+        };
+      }
+
+      // Kontrak payload quick-responder tetap sama.
+      const payload = {
+        event_id: event.id,
+        registration_type: registrationType,
+        team_name: teamName,
+        whatsapp,
+        participants: names.map((name, index) => ({
+          name,
+          role: roleValues[index] || defaultRole || "Peserta"
+        })),
+        custom_data: custom
+      };
+
+      button.textContent = "Mengirim pendaftaran...";
+
       const { data, error } = await db.functions.invoke(
         "quick-responder",
         { body: payload }
@@ -1051,6 +1104,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     } catch (error) {
       console.error("Pendaftaran event:", error);
+
+      // Jika pendaftaran gagal setelah upload, file yang belum terpakai
+      // mungkin tertinggal di bucket private dan dapat dibersihkan Admin.
+      if (uploadedFiles.length) {
+        console.warn("File unggahan yang belum terpakai:", uploadedFiles);
+      }
 
       $("#registration-result").innerHTML = `
         <p class="form-message">
