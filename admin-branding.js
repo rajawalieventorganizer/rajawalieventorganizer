@@ -176,8 +176,59 @@ document.addEventListener("DOMContentLoaded", () => {
 
   sponsorInput.addEventListener("change", () => {
     const files = Array.from(sponsorInput.files || []);
-    pendingSponsors = files.map((file) => ({ file, name: safeName(file.name), position: "bottom" }));
+    if (!files.length) return;
+
+    // Bangun daftar identitas file yang sudah dipilih agar tidak terduplikasi.
+    const existingKeys = new Set(
+      pendingSponsors.map((item) =>
+        [item.file.name, item.file.size, item.file.lastModified].join("|")
+      )
+    );
+
+    let added = 0;
+    let rejected = 0;
+
+    for (const file of files) {
+      if (!file.type || !file.type.startsWith("image/")) {
+        alert("File " + file.name + " bukan gambar dan tidak ditambahkan.");
+        rejected++;
+        continue;
+      }
+
+      if (file.size > 8 * 1024 * 1024) {
+        alert("Logo " + file.name + " melebihi batas 8 MB dan tidak ditambahkan.");
+        rejected++;
+        continue;
+      }
+
+      const key = [file.name, file.size, file.lastModified].join("|");
+      if (existingKeys.has(key)) continue;
+
+      pendingSponsors.push({
+        file,
+        name: safeName(file.name),
+        position: "bottom",
+      });
+
+      existingKeys.add(key);
+      added++;
+    }
+
+    // Reset input tanpa menghapus file dalam pendingSponsors.
+    // Admin dapat membuka pemilih file lagi untuk menambah batch berikutnya.
+    sponsorInput.value = "";
     renderPending();
+
+    if (added > 0) {
+      note(
+        added + " logo sponsor ditambahkan. " +
+        pendingSponsors.length + " logo siap disimpan."
+      );
+    } else if (rejected > 0) {
+      note("Tidak ada logo valid yang ditambahkan.", true);
+    } else {
+      note("Logo tersebut sudah ada dalam daftar pilihan.");
+    }
   });
 
   organizerInput.addEventListener("change", () => {
