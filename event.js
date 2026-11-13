@@ -1005,7 +1005,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      if (!isPhoto && !/\\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv)$/i.test(file.name)) {
+      if (!isPhoto && !/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv)$/i.test(file.name)) {
         alert("Format dokumen belum didukung.");
         input.focus();
         return;
