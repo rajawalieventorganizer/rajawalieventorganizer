@@ -1,0 +1,31 @@
+RAJAWALI EVENT ORGANIZER — FILE SIAP UNGGAH
+
+ISI PAKET
+1. admin.html              (sudah diperbarui: tautan Lupa Kata Sandi)
+2. lupa-password.html      (halaman permintaan email pemulihan)
+3. lupa-password.js        (proses kirim tautan Supabase)
+4. reset-password.html     (halaman membuat kata sandi baru)
+5. reset-password.js       (validasi sesi pemulihan dan simpan kata sandi)
+
+CARA UNGGAH
+- Ekstrak ZIP.
+- Unggah kelima file tersebut langsung ke folder utama/root repository GitHub Pages.
+- Saat diminta, pilih Replace/Commit changes untuk mengganti admin.html lama.
+- Jangan hapus atau ganti admin.js, supabase-config.js, common.js, style.css,
+  atau file website lain. File-file tersebut tetap dipakai seperti sebelumnya.
+
+PENGATURAN SUPABASE YANG WAJIB
+Di Supabase Dashboard > Authentication > URL Configuration, tambahkan alamat ini
+ke daftar Redirect URLs:
+https://rajawalieventorganizer.github.io/reset-password.html
+
+Pastikan Site URL tetap alamat website utama:
+https://rajawalieventorganizer.github.io
+
+Jika memakai domain khusus, gunakan domain aktif Bapak sebagai pengganti alamat di atas.
+
+CATATAN
+- Tidak ada perubahan SQL/database.
+- Admin.js dan pemeriksaan organizer_admins tetap dipakai seperti semula.
+- Reset kata sandi tidak menambahkan hak admin dan tidak melewati pemeriksaan admin.
+- Uji dengan email admin yang benar dan periksa folder Spam/Junk bila email tidak tampak.
